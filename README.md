@@ -1,42 +1,110 @@
-# OnlineJobsPH Job Posts Scraper
+# OnlineJobs.PH Job Scraper
 
-If you want to keep tabs of available job posts on the [OnlineJobsPH JobSearch](https://www.onlinejobs.ph/jobseekers/jobsearch) platform based on specific keywords, without spending a lot of time scrolling through many pages, this scraper can help.
+![Python](https://img.shields.io/badge/python-3.9%2B-blue)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
+![Scrape workflow](https://github.com/villalonlester24-jpg/scraper-onlinejobsph/actions/workflows/scrape.yml/badge.svg)
 
----
+Automatically scrape OnlineJobs.PH job posts into a Google Sheet.
 
-## What You Need
+## Overview
 
-* [Scrapy](https://github.com/scrapy/scrapy). Install this on your machine.
+This is a Scrapy spider that collects the current job posts from the
+[OnlineJobs.PH job search](https://www.onlinejobs.ph/jobseekers/jobsearch),
+follows each post to capture its full description, and writes the results to a
+Google Sheet. It is built to run on a schedule so the sheet always shows the
+latest set of jobs without any manual work.
 
----
+## Features
 
-## Scrape Job Posts for Today
+- Scrapes every post on the OnlineJobs.PH job search
+- Follows each job page to capture the complete description, not the short teaser
+- Writes results directly to Google Sheets
+- Replaces the sheet contents on every run so the list stays current
+- Runs automatically every 2 hours with GitHub Actions
+- Reuses previously scraped descriptions so runs stay fast and light
 
-1. Open a web browser. Go to the remote code repository (<https://github.com/jasonogayon/scraper-onlinejobsph>) and copy its SSH or HTTPS link.
+## About This Fork
 
-2. On your machine, open a terminal and clone the remote repository locally wherever you want. Run `git clone git@github.com:jasonogayon/scraper-onlinejobsph.git`.
+This project is based on the original scraper by
+[Jason B. Ogayon](https://github.com/jasonogayon/scraper-onlinejobsph).
 
-3. After that, go inside the cloned **scraper-onlinejobsph** repository. You can decide to rename this directory to what you want.
+The following additions and changes were made by
+[Lester Matthew Villalon](https://github.com/villalonlester24-jpg):
 
-4. Now, assuming you have Scrapy successfully installed on your machine, we can start using our scraper. Run `make s`. This retrieved the available job posts for today for the keywords that the scraper is set to watch for. A `jobs.json` file would be generated after.
+- Google Sheets replace each run (a fresh list every run, keeping the `Sent` column)
+- Every 2-hour automatic schedule
+- GitHub Actions hosting
 
----
+## Requirements
 
-## Scrape Job Posts for Yesterday
+- Python 3.9 or newer
+- Scrapy, gspread, and google-auth (see `requirements.txt`)
+- A Google Sheet and Google OAuth credentials
 
-1. If you want to look at available job posts yesterday for the keywords that the scraper is set to watch for, run `make y`.
+## Installation
 
----
+```bash
+pip install -r requirements.txt
+```
 
-## Scraped Data: jobs.json
+## Google Sheets Setup
 
-Running the scraper generates a `jobs.json` file with job posts data matching the keywords that was search for. On each run, it deletes the file (if it exists) and generates a new one.
+1. Create a Google Sheet and copy its ID or full URL.
+2. In Google Cloud, enable the Google Sheets API and create an OAuth
+   Desktop app client.
+3. Save the downloaded client file as `oauth_client.json` next to the scripts.
+4. Copy `gsheet_config.example.json` to `gsheet_config.json` and set your
+   spreadsheet ID.
+5. On the first run, a browser opens to authorize access; the token is then
+   cached as `oauth_token.json`.
 
-Here's what a sample file looks like after opening it and formatting it a bit with the use of a text editor:
+## Usage
 
-![Sample jobs.json](./docs/sample_jobs_json.png)
+Scrape the current job posts and write them to your Google Sheet:
 
----
+```bash
+python -m scrapy crawl jobs -a offset=0 -o jobs.json
+python to_gsheet.py --replace --jobs jobs.json
+```
 
-Author: Jason B. Ogayon \
-Software Engineer and Software Tester
+On Windows you can use the helper script instead:
+
+```
+run.bat
+```
+
+## How It Works
+
+1. Crawls the OnlineJobs.PH job search listing.
+2. Follows each job post and extracts the full description.
+3. Reuses descriptions already stored in the sheet so unchanged posts are not
+   fetched again.
+4. Replaces the Google Sheet with the current set of jobs, preserving any extra
+   columns (for example a manual `Sent` column).
+
+## Project Structure
+
+```
+scraper_onlinejobsph/
+  spiders/jobs_spider.py   The Scrapy spider
+  settings.py              Scrapy settings
+to_gsheet.py               Exports, caches, and writes to Google Sheets
+.github/workflows/scrape.yml   Scheduled GitHub Actions workflow
+run.bat                    Windows helper
+requirements.txt           Python dependencies
+```
+
+## Credits
+
+- Original project: [Jason B. Ogayon](https://github.com/jasonogayon/scraper-onlinejobsph)
+- This version maintained by: [Lester Matthew Villalon](https://github.com/villalonlester24-jpg)
+
+## License
+
+Released under the MIT License. See [LICENSE](LICENSE) for details.
+
+## Disclaimer
+
+This project is intended for educational and personal use. Web scraping may be
+subject to a website's terms of service. Use it responsibly and respect the
+site's `robots.txt` and rate limits.
