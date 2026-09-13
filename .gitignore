@@ -1,0 +1,7 @@
+jobs*.json
+service_account.json
+oauth_client.json
+oauth_token.json
+gsheet_config.json
+__pycache__/
+*.pyc

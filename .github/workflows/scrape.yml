@@ -1,0 +1,64 @@
+name: Scrape OnlineJobs.PH
+
+on:
+  schedule:
+    # Every 2 hours (UTC). GitHub cron is UTC; runs at :00.
+    - cron: '0 */2 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: scrape-onlinejobsph
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    env:
+      # Scraper compares post dates to "today"; pin to Philippine time.
+      TZ: Asia/Manila
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Restore credentials from secrets
+        env:
+          GSHEET_CONFIG: ${{ secrets.GSHEET_CONFIG }}
+          OAUTH_CLIENT: ${{ secrets.OAUTH_CLIENT }}
+          OAUTH_TOKEN: ${{ secrets.OAUTH_TOKEN }}
+        run: |
+          if [ -z "$OAUTH_CLIENT" ] || [ -z "$OAUTH_TOKEN" ] || [ -z "$GSHEET_CONFIG" ]; then
+            echo "Missing one or more secrets: GSHEET_CONFIG, OAUTH_CLIENT, OAUTH_TOKEN" >&2
+            exit 1
+          fi
+          printf '%s' "$GSHEET_CONFIG" > gsheet_config.json
+          printf '%s' "$OAUTH_CLIENT" > oauth_client.json
+          printf '%s' "$OAUTH_TOKEN" > oauth_token.json
+
+      - name: Scrape today and yesterday
+        run: |
+          rm -f jobs_today.json jobs_yesterday.json
+          python -m scrapy crawl jobs -a offset=0 -o jobs_today.json
+          python -m scrapy crawl jobs -a offset=1 -o jobs_yesterday.json
+
+      - name: Upload to Google Sheets
+        run: |
+          python to_gsheet.py --jobs jobs_today.json
+          python to_gsheet.py --jobs jobs_yesterday.json
+
+      - name: Upload raw JSON as artifact (debug)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jobs-json
+          path: |
+            jobs_today.json
+            jobs_yesterday.json
+          if-no-files-found: ignore
+          retention-days: 7

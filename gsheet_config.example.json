@@ -1,0 +1,8 @@
+{
+  "spreadsheet_id": "PASTE_YOUR_SPREADSHEET_ID_OR_URL_HERE",
+  "auth_mode": "auto",
+  "service_account_file": "service_account.json",
+  "oauth_client_file": "oauth_client.json",
+  "oauth_token_file": "oauth_token.json",
+  "worksheet": "Jobs"
+}

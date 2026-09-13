@@ -1,0 +1,8 @@
+# Python dependencies for the OnlineJobs.PH scraper + Google Sheets uploader
+# Install with:  python -m pip install -r requirements.txt
+#
+# Tested with Python 3.14 on Windows.
+scrapy>=2.19.0
+gspread>=6.2.1
+google-auth>=2.58.0
+google-auth-oauthlib>=1.4.1
