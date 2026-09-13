@@ -1,13 +1,10 @@
 name: Scrape OnlineJobs.PH
-# Scheduled scraper: runs every 2 hours, uploads new jobs to Google Sheets.
 
 on:
   schedule:
     # Every 2 hours (UTC). GitHub cron is UTC; runs at :00.
     - cron: '0 */2 * * *'
   workflow_dispatch: {}
-  push:
-    branches: [ master ]
 
 concurrency:
   group: scrape-onlinejobsph
