@@ -1,9 +1,14 @@
 name: Scrape OnlineJobs.PH
 
 on:
+  # GitHub cron is ALWAYS UTC - there is no timezone option for schedules.
+  # PHT = UTC+8, and the job itself runs with TZ=Asia/Manila (below).
+  # Shifted to :05 to avoid GitHub's congestion at the top of the hour.
   schedule:
-    # Every 2 hours (UTC). GitHub cron is UTC; runs at :00.
-    - cron: '0 */2 * * *'
+    # Every 2 hours. In PHT that is:
+    # 8:05AM 10:05AM 12:05PM 2:05PM 4:05PM 6:05PM
+    # 8:05PM 10:05PM 12:05AM 2:05AM 4:05AM 6:05AM
+    - cron: '5 */2 * * *'
   workflow_dispatch: {}
 
 concurrency:
