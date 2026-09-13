@@ -43,9 +43,10 @@ jobs:
 
       - name: Scrape today and yesterday
         run: |
+          python to_gsheet.py --export-urls seen_urls.txt
           rm -f jobs_today.json jobs_yesterday.json
-          python -m scrapy crawl jobs -a offset=0 -o jobs_today.json
-          python -m scrapy crawl jobs -a offset=1 -o jobs_yesterday.json
+          python -m scrapy crawl jobs -a offset=0 -a seen_urls=seen_urls.txt -o jobs_today.json
+          python -m scrapy crawl jobs -a offset=1 -a seen_urls=seen_urls.txt -o jobs_yesterday.json
 
       - name: Upload to Google Sheets
         run: |

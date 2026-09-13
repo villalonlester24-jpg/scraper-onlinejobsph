@@ -1,4 +1,5 @@
 import scrapy
+import os
 import re
 import datetime
 
@@ -20,26 +21,30 @@ class JobsSpider(scrapy.Spider):
     post_role = "h4::text"
     post_client = "p::text"
     post_salary = "dl.no-gutters dd::text"
-    post_desc = "div.desc::text"
     post_url = "a"
+    job_description = "#job-description"
 
 
 
 
     # Method to Clean Scraped Text
     def clean(self, text):
-        text = text.encode("ascii", "ignore")
-        text = text.decode()
-        return text.replace("\n",'').replace("\r",' ').strip()
+        return " ".join(text.split())
 
 
 
 
 
-    def __init__(self, offset='', **kwargs):
+    def __init__(self, offset='', seen_urls='', **kwargs):
 
         self.start_urls = []
         self.offset = int(offset)
+
+        # URLs already in the sheet: skip fetching their job pages again
+        self.seen_urls = set()
+        if seen_urls and os.path.exists(seen_urls):
+            with open(seen_urls, encoding='utf-8') as fh:
+                self.seen_urls = {line.strip() for line in fh if line.strip()}
 
         if self.offset < 2:
             start = 0
@@ -69,21 +74,39 @@ class JobsSpider(scrapy.Spider):
 
             if post_date == period:
 
-                # Scrape Desired Information
-                role = job.css(self.post_role).get(default='')
-                client = job.css(self.post_client).get(default='')
-                salary = job.css(self.post_salary).get(default='')
-                desc = job.css(self.post_desc).get(default='')
                 url = self.base_url + job.css(self.post_url)[0].attrib['href']
 
-                yield {
-                    'role': self.clean(role),
-                    'client': self.clean(client),
-                    'salary': self.clean(salary),
-                    'desc': self.clean(desc),
-                    'date': date,
-                    'url': url,
-                }
+                # Already uploaded in a previous run -> no need to re-fetch
+                if url in self.seen_urls:
+                    continue
+
+                # Follow the job page to grab the full description
+                yield scrapy.Request(
+                    url,
+                    callback=self.parse_job,
+                    cb_kwargs={
+                        'role': self.clean(job.css(self.post_role).get(default='')),
+                        'client': self.clean(job.css(self.post_client).get(default='')),
+                        'salary': self.clean(job.css(self.post_salary).get(default='')),
+                        'date': date,
+                        'url': url,
+                    },
+                )
+
+
+
+    def parse_job(self, response, role, client, salary, date, url):
+        # Full description lives on the job page, not the search listing
+        desc = response.css(self.job_description).xpath("string(.)").get(default='')
+
+        yield {
+            'role': role,
+            'client': client,
+            'salary': salary,
+            'desc': self.clean(desc),
+            'date': date,
+            'url': url,
+        }
 
 
 

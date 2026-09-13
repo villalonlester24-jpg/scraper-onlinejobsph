@@ -67,6 +67,10 @@ def parse_args():
                         help="Worksheet/tab name (default: Jobs)")
     parser.add_argument("--no-dedupe", action="store_true",
                         help="Append everything, even jobs already in the sheet")
+    parser.add_argument("--export-urls", default="",
+                        help="Write all URLs already in the sheet to this file and exit")
+    parser.add_argument("--replace", action="store_true",
+                        help="Clear the worksheet and write all scraped jobs (ignores dedupe)")
     return parser.parse_args()
 
 
@@ -154,7 +158,6 @@ def main():
         sys.exit("[ERROR] No spreadsheet ID/URL provided.\n"
                  "Pass --sheet-id or set \"spreadsheet_id\" in gsheet_config.json.")
 
-    jobs = load_jobs(args.jobs)
     client = build_client(args)
     worksheet = get_worksheet(client, sheet_id, args.worksheet)
 
@@ -165,6 +168,22 @@ def main():
 
     url_col = HEADERS.index("URL")
     existing_urls = {row[url_col] for row in existing[1:] if len(row) > url_col}
+
+    if args.export_urls:
+        with open(args.export_urls, "w", encoding="utf-8") as fh:
+            fh.write("\n".join(sorted(u for u in existing_urls if u)))
+        print(f"Exported {len(existing_urls)} URL(s) to {args.export_urls}")
+        return
+
+    jobs = load_jobs(args.jobs)
+
+    if args.replace:
+        rows = [[str(job.get(field, "")) for field in FIELDS] for job in jobs]
+        worksheet.clear()
+        worksheet.update([HEADERS] + rows, value_input_option="USER_ENTERED")
+        print(f"Replaced worksheet '{args.worksheet}' with {len(rows)} row(s).")
+        print(f"Open: https://docs.google.com/spreadsheets/d/{sheet_id}/edit")
+        return
 
     rows = []
     for job in jobs:

@@ -19,6 +19,10 @@ NEWSPIDER_MODULE = 'scraper_onlinejobsph.spiders'
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
 
+# Be polite: the site asks for a Crawl-delay in robots.txt
+DOWNLOAD_DELAY = 1
+CONCURRENT_REQUESTS_PER_DOMAIN = 4
+
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
 #CONCURRENT_REQUESTS = 32
 
