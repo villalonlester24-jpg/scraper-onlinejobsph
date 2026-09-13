@@ -4,5 +4,6 @@ oauth_client.json
 oauth_token.json
 gsheet_config.json
 seen_urls.txt
+cache.json
 __pycache__/
 *.pyc

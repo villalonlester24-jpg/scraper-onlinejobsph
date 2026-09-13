@@ -4,19 +4,19 @@ cd /d "%~dp0"
 set OFFSET=%1
 if "%OFFSET%"=="" set OFFSET=0
 
-echo === Fetching already-uploaded URLs ===
-python to_gsheet.py --export-urls seen_urls.txt
+echo === Loading cached descriptions ===
+python to_gsheet.py --export-cache cache.json
 if errorlevel 1 goto :error
 
 echo.
 echo === Scraping OnlineJobs.PH (offset=%OFFSET%) ===
 if exist jobs.json del jobs.json
-python -m scrapy crawl jobs -a offset=%OFFSET% -a seen_urls=seen_urls.txt -o jobs.json
+python -m scrapy crawl jobs -a offset=%OFFSET% -a cache=cache.json -o jobs.json
 if errorlevel 1 goto :error
 
 echo.
-echo === Uploading to Google Sheets ===
-python to_gsheet.py
+echo === Replacing Google Sheet with this run's data ===
+python to_gsheet.py --replace --jobs jobs.json
 if errorlevel 1 goto :error
 
 echo.

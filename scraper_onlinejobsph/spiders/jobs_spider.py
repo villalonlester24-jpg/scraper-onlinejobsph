@@ -1,6 +1,7 @@
 import scrapy
 import os
 import re
+import json
 import datetime
 
 
@@ -35,16 +36,17 @@ class JobsSpider(scrapy.Spider):
 
 
 
-    def __init__(self, offset='', seen_urls='', **kwargs):
+    def __init__(self, offset='', cache='', **kwargs):
 
         self.start_urls = []
         self.offset = int(offset)
 
-        # URLs already in the sheet: skip fetching their job pages again
-        self.seen_urls = set()
-        if seen_urls and os.path.exists(seen_urls):
-            with open(seen_urls, encoding='utf-8') as fh:
-                self.seen_urls = {line.strip() for line in fh if line.strip()}
+        # URL -> description we already scraped. Reuse it instead of
+        # re-fetching the job page on every run.
+        self.cache = {}
+        if cache and os.path.exists(cache):
+            with open(cache, encoding='utf-8') as fh:
+                self.cache = json.load(fh)
 
         if self.offset < 2:
             start = 0
@@ -75,19 +77,31 @@ class JobsSpider(scrapy.Spider):
             if post_date == period:
 
                 url = self.base_url + job.css(self.post_url)[0].attrib['href']
+                role = self.clean(job.css(self.post_role).get(default=''))
+                client = self.clean(job.css(self.post_client).get(default=''))
+                salary = self.clean(job.css(self.post_salary).get(default=''))
 
-                # Already uploaded in a previous run -> no need to re-fetch
-                if url in self.seen_urls:
+                # Reuse the description already scraped for this URL
+                cached_desc = self.cache.get(url)
+                if cached_desc:
+                    yield {
+                        'role': role,
+                        'client': client,
+                        'salary': salary,
+                        'desc': cached_desc,
+                        'date': date,
+                        'url': url,
+                    }
                     continue
 
-                # Follow the job page to grab the full description
+                # Otherwise follow the job page to grab the full description
                 yield scrapy.Request(
                     url,
                     callback=self.parse_job,
                     cb_kwargs={
-                        'role': self.clean(job.css(self.post_role).get(default='')),
-                        'client': self.clean(job.css(self.post_client).get(default='')),
-                        'salary': self.clean(job.css(self.post_salary).get(default='')),
+                        'role': role,
+                        'client': client,
+                        'salary': salary,
                         'date': date,
                         'url': url,
                     },

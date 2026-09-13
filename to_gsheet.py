@@ -69,6 +69,8 @@ def parse_args():
                         help="Append everything, even jobs already in the sheet")
     parser.add_argument("--export-urls", default="",
                         help="Write all URLs already in the sheet to this file and exit")
+    parser.add_argument("--export-cache", default="",
+                        help="Write a URL->description JSON cache from the sheet and exit")
     parser.add_argument("--replace", action="store_true",
                         help="Clear the worksheet and write all scraped jobs (ignores dedupe)")
     return parser.parse_args()
@@ -175,13 +177,40 @@ def main():
         print(f"Exported {len(existing_urls)} URL(s) to {args.export_urls}")
         return
 
+    if args.export_cache:
+        desc_col = HEADERS.index("Description")
+        cache = {}
+        for row in existing[1:]:
+            if len(row) > url_col and row[url_col]:
+                cache[row[url_col]] = row[desc_col] if len(row) > desc_col else ""
+        with open(args.export_cache, "w", encoding="utf-8") as fh:
+            json.dump(cache, fh, ensure_ascii=False)
+        print(f"Exported {len(cache)} cached description(s) to {args.export_cache}")
+        return
+
     jobs = load_jobs(args.jobs)
 
     if args.replace:
-        rows = [[str(job.get(field, "")) for field in FIELDS] for job in jobs]
+        # Keep any columns beyond our 6 (e.g. a manual "Sent" column) by URL
+        extra_headers = []
+        if existing and len(existing[0]) > len(HEADERS):
+            extra_headers = existing[0][len(HEADERS):]
+        extra_by_url = {}
+        for row in existing[1:]:
+            if len(row) > url_col and row[url_col]:
+                extra_by_url[row[url_col]] = row[len(HEADERS):]
+
+        out = [HEADERS + extra_headers]
+        for job in jobs:
+            values = [str(job.get(field, "")) for field in FIELDS]
+            extra = extra_by_url.get(job.get("url", ""), [])
+            extra = (extra + [""] * len(extra_headers))[:len(extra_headers)]
+            out.append(values + extra)
+
         worksheet.clear()
-        worksheet.update([HEADERS] + rows, value_input_option="USER_ENTERED")
-        print(f"Replaced worksheet '{args.worksheet}' with {len(rows)} row(s).")
+        worksheet.update(out, value_input_option="USER_ENTERED")
+        print(f"Replaced worksheet '{args.worksheet}' with {len(jobs)} row(s) "
+              f"(preserved {len(extra_headers)} extra column(s)).")
         print(f"Open: https://docs.google.com/spreadsheets/d/{sheet_id}/edit")
         return
 

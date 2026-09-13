@@ -46,25 +46,21 @@ jobs:
           printf '%s' "$OAUTH_CLIENT" > oauth_client.json
           printf '%s' "$OAUTH_TOKEN" > oauth_token.json
 
-      - name: Scrape today and yesterday
+      - name: Scrape today's jobs
         run: |
-          python to_gsheet.py --export-urls seen_urls.txt
-          rm -f jobs_today.json jobs_yesterday.json
-          python -m scrapy crawl jobs -a offset=0 -a seen_urls=seen_urls.txt -o jobs_today.json
-          python -m scrapy crawl jobs -a offset=1 -a seen_urls=seen_urls.txt -o jobs_yesterday.json
+          python to_gsheet.py --export-cache cache.json
+          rm -f jobs_today.json
+          python -m scrapy crawl jobs -a offset=0 -a cache=cache.json -o jobs_today.json
 
-      - name: Upload to Google Sheets
+      - name: Replace Google Sheet with this run's data
         run: |
-          python to_gsheet.py --jobs jobs_today.json
-          python to_gsheet.py --jobs jobs_yesterday.json
+          python to_gsheet.py --replace --jobs jobs_today.json
 
       - name: Upload raw JSON as artifact (debug)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: jobs-json
-          path: |
-            jobs_today.json
-            jobs_yesterday.json
+          path: jobs_today.json
           if-no-files-found: ignore
           retention-days: 7
