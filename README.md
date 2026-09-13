@@ -23,13 +23,10 @@ latest set of jobs without any manual work.
 - Runs automatically every 2 hours with GitHub Actions
 - Reuses previously scraped descriptions so runs stay fast and light
 
-## About This Fork
+## What's in This Version
 
-This project is based on the original scraper by
-[Jason B. Ogayon](https://github.com/jasonogayon/scraper-onlinejobsph).
-
-The following additions and changes were made by
-[Lester Matthew Villalon](https://github.com/villalonlester24-jpg):
+Maintained by [Lester Matthew Villalon](https://github.com/villalonlester24-jpg).
+Key additions in this version:
 
 - Google Sheets replace each run (a fresh list every run, keeping the `Sent` column)
 - Every 2-hour automatic schedule
@@ -96,8 +93,7 @@ requirements.txt           Python dependencies
 
 ## Credits
 
-- Original project: [Jason B. Ogayon](https://github.com/jasonogayon/scraper-onlinejobsph)
-- This version maintained by: [Lester Matthew Villalon](https://github.com/villalonlester24-jpg)
+- Maintained by: [Lester Matthew Villalon](https://github.com/villalonlester24-jpg)
 
 ## License
 
