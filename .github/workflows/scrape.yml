@@ -1,12 +1,11 @@
 name: Scrape OnlineJobs.ph
 
-# Both crons are UTC. Asia/Manila is UTC+8 with no DST, so these land at
-# 08:17 and 20:17 local. Deliberately not on the hour: GitHub's scheduler is
-# busiest at :00, and a run queued behind everyone else's gets delayed.
+# Runs every 2 hours at :17 past the hour (UTC).
+# Asia/Manila is UTC+8 with no DST, so this runs at:
+# 08:17, 10:17, 12:17, 14:17, 16:17, 18:17, 20:17, 22:17, 00:17, 02:17, 04:17, 06:17 PHT.
 on:
   schedule:
-    - cron: "17 0 * * *"    # 08:17 Asia/Manila
-    - cron: "17 12 * * *"   # 20:17 Asia/Manila
+    - cron: "17 */2 * * *"
   workflow_dispatch:         # the Actions tab gets a "Run workflow" button
 
 # The job commits output/jobs.xlsx back to the repo, so it needs write access.
