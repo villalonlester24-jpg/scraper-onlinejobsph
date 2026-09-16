@@ -1,0 +1,100 @@
+name: Scrape OnlineJobs.ph
+
+# Both crons are UTC. Asia/Manila is UTC+8 with no DST, so these land at
+# 08:17 and 20:17 local. Deliberately not on the hour: GitHub's scheduler is
+# busiest at :00, and a run queued behind everyone else's gets delayed.
+on:
+  schedule:
+    - cron: "17 0 * * *"    # 08:17 Asia/Manila
+    - cron: "17 12 * * *"   # 20:17 Asia/Manila
+  workflow_dispatch:         # the Actions tab gets a "Run workflow" button
+
+# The job commits output/jobs.xlsx back to the repo, so it needs write access.
+permissions:
+  contents: write
+
+# The two crons can overlap if a run is slow. Queue instead of cancelling —
+# a cancelled run can leave the workbook uncommitted, which costs the dedup
+# memory that stops tomorrow's run re-alerting on today's jobs.
+concurrency:
+  group: scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Scrape
+        run: |
+          set -euo pipefail
+          python scraper.py --append
+          echo "--- workbook now holds ---"
+          python -c "import openpyxl;ws=openpyxl.load_workbook('output/jobs.xlsx').active;print(ws.max_row-1,'rows')"
+
+      # Committing happens BEFORE the Google Sheets sync on purpose. The
+      # workbook is the thing that must not be lost; if Sheets is down, the
+      # next run re-sends its recent rows and the sink dedups them. The reverse
+      # order would let a Sheets outage skip the commit and stall dedup.
+      - name: Commit the workbook
+        run: |
+          set -euo pipefail
+
+          # A run where nothing was new still has to produce a commit. GitHub
+          # disables scheduled workflows on a public repo after 60 days with no
+          # repository activity, and "no new jobs" is exactly what a quiet
+          # stretch looks like. This guarantees a diff either way.
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > output/last-run.txt
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add output/jobs.xlsx output/last-run.txt
+
+          if git diff --cached --quiet; then
+            echo "nothing changed"
+          else
+            git commit -m "jobs: $(date -u +'%Y-%m-%d %H:%M') UTC"
+            git push
+          fi
+
+      - name: Sync to Google Sheets
+        env:
+          SHEETS_WEBHOOK_URL: ${{ secrets.SHEETS_WEBHOOK_URL }}
+          SHEETS_WEBHOOK_TOKEN: ${{ secrets.SHEETS_WEBHOOK_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SHEETS_WEBHOOK_URL:-}" ]; then
+            echo "::warning::SHEETS_WEBHOOK_URL is not set — the workbook was saved and committed, but Google Sheets was not updated. See CLOUD.md."
+            exit 0
+          fi
+          python sheet_sync.py --rows 60
+
+      - name: Notify on failure
+        if: failure()
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TG_TOKEN:-}" ] || [ -z "${TG_CHAT:-}" ]; then
+            echo "no Telegram secrets configured — skipping"
+            exit 0
+          fi
+          # -o /dev/null so curl can never print the URL, which contains the
+          # bot token. GitHub masks secrets in logs too, but this is the belt.
+          curl -sS --fail -o /dev/null -X POST \
+            "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            -d "chat_id=${TG_CHAT}" \
+            --data-urlencode "text=OnlineJobs scrape FAILED — ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          echo "failure notice sent"

@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(if \\(Test-Path \"$env:USERPROFILE\\\\.claude\\\\settings.json\"\\) { Get-Content \"$env:USERPROFILE\\\\.claude\\\\settings.json\" })",
+      "WebFetch(domain:www.onlinejobs.ph)",
+      "PowerShell($r = curl.exe -s -o page.html -w \"%{http_code} %{size_download}\" -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/124.0 Safari/537.36\" \"https://www.onlinejobs.ph/jobseekers/jobsearch\"; Write-Output \"STATUS/SIZE: $r\")",
+      "PowerShell(curl.exe -s -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) Chrome/124.0 Safari/537.36\" \"https://www.onlinejobs.ph/min/javascripts/jobseeker-search.js\" -o search.js; \\(Get-Item search.js\\).Length)",
+      "PowerShell(python scraper.py --max-pages 1 --limit 5 --delay 1 2>&1 | Select-Object -Last 40)",
+      "PowerShell(python scraper.py --max-pages 1 --limit 3 --delay 1 --refresh 2>&1)",
+      "PowerShell(python scraper.py --keyword \"video editor\" --max-pages 2 --no-details --delay 1 --out output/test 2>&1 | Select-Object -Last 14)",
+      "PowerShell(python scraper.py --max-pages 1 --no-details --limit 1 --out output/test 2>&1 | Select-Object -First 6)",
+      "PowerShell(python scraper.py --max-pages 1 --no-details --limit 1 --out output/test 2>&1 | Select-Object -Last 8; Write-Output \"EXIT=$LASTEXITCODE\")",
+      "PowerShell(Remove-Item *)",
+      "PowerShell(python scraper.py --limit 10 --delay 1 2>&1 | Select-Object -Last 25; Write-Output \"EXIT=$LASTEXITCODE\")",
+      "PowerShell(python _verify.py)",
+      "PowerShell(python scraper.py --urls \"https://www.onlinejobs.ph/jobseekers/job/video-editor-full-time-job-1723927\" --delay 1 --out output/url-test 2>&1 | Select-Object -Last 15)",
+      "PowerShell(python scraper.py --max-pages 1 --out output 2>&1 | Select-Object -Last 45; Write-Output \"EXIT=$LASTEXITCODE\")",
+      "PowerShell($x = [xml]\\(schtasks /Query /TN \"OnlineJobs Daily Match\" /XML\\); $x.Task.Settings.InnerXml -split '><' | ForEach-Object { $_.Trim\\('<','>'\\) })",
+      "PowerShell(& \"C:\\\\Program Files\\\\Python314\\\\python.exe\" -c \"import ast,sys; ast.parse\\(open\\(r'C:\\\\Users\\\\Administrator\\\\Desktop\\\\VAJOBSCRAPER\\\\set_time.py',encoding='utf-8'\\).read\\(\\)\\); print\\('parse OK'\\)\"; & \"C:\\\\Program Files\\\\Python314\\\\python.exe\" \"C:\\\\Users\\\\Administrator\\\\Desktop\\\\VAJOBSCRAPER\\\\set_time.py\" --show)"
+    ]
+  }
+}

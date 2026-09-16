@@ -1,0 +1,19 @@
+# Caches and scratch — never worth committing
+.cache/
+__pycache__/
+*.pyc
+
+# Output. Only the running workbook is tracked, and it has to be: on a GitHub
+# runner the filesystem is thrown away after every run, so jobs.xlsx *is* the
+# scraper's memory of what it has already seen. Lose it and every run
+# re-discovers the same jobs.
+#
+# Everything else output/ produces is per-run scratch — timestamped jsonl/csv,
+# the rolling backup, and jobs-pending.xlsx — so it stays out.
+output/*
+!output/jobs.xlsx
+!output/last-run.txt
+
+# PII — the resume, whatever it happens to be named
+*.pdf
+*.docx
