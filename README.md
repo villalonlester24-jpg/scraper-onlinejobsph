@@ -60,7 +60,8 @@ python scraper.py --delay 2
 | `--skills S1 S2` | Skill tags; the site caps this at 3 |
 | `--gig` / `--part-time` / `--full-time` | Employment types. All three on by default (matches the site's default form state) |
 | `--urls URL...` | Scrape these job detail URLs directly, skipping the search |
-| `--limit N` | Stop after N jobs. Defaults to 30 (`DEFAULT_LIMIT` in `scraper.py`); `0` means no limit |
+| `--limit N` | Stop after N jobs (default: all available jobs, `0` = no limit) |
+| `--impersonate BROWSER` | Browser to impersonate for TLS anti-bot evasion via `curl_cffi` (default: `chrome`) |
 | `--max-pages N` | Stop after N listing pages (30 jobs each) |
 | `--no-details` | Skip detail pages — listing fields only, much faster |
 | `--delay SECS` | Seconds between requests. Default: `robots.txt` crawl-delay (5s) |
