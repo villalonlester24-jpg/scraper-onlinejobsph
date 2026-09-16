@@ -17,3 +17,8 @@ output/*
 # PII — the resume, whatever it happens to be named
 *.pdf
 *.docx
+
+# Google OAuth / service account credentials — never commit to git
+*oauth*.json
+*service_account*.json
+gsheet_config.json
